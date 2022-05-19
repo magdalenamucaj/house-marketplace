@@ -1,12 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {toast} from 'react-toastify'
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth'
+import { setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase.config";
 import { ReactComponent as ArrowRightIcon } from "../assets/svg/keyboardArrowRightIcon.svg";
 import visibilityIcon from "../assets/svg/visibilityIcon.svg";
+import "react-toastify/dist/ReactToastify.css";
 
 function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    name: "",
     email: "",
     password: "",
   });
@@ -17,9 +26,39 @@ function SignUp() {
   const onChange = (e) => {
     setFormData((prevState) => ({
       ...prevState,
-      [e.target.id]: e.target.value
-    }))
+      [e.target.id]: e.target.value,
+    }));
+  };
 
+  const onSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const auth = getAuth();
+
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      const user = userCredential.user;
+
+      updateProfile(auth.currentUser, {
+        displayName: name
+      })
+
+      const formDataCopy = {...formData}
+
+      delete formDataCopy.password
+      formDataCopy.timestamp = serverTimestamp()
+
+      await setDoc(doc(db, 'users', user.uid), formDataCopy)
+
+      navigate('/')
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (
@@ -29,8 +68,8 @@ function SignUp() {
           <div className="pageHeader">Wellcome Back!</div>
         </header>
 
-        <form>
-        <input
+        <form onSubmit={onSubmit}>
+          <input
             type="text"
             className="nameInput"
             placeholder="Name"
@@ -66,21 +105,21 @@ function SignUp() {
             />
           </div>
 
-          <Link to='/forgotPassword' className="forgotPasswordLink">
+          <Link to="/forgotPassword" className="forgotPasswordLink">
             Forgot Password
           </Link>
 
           <div className="signInBar">
             <p className="signInText">Sign Up</p>
             <button className="signUpButton">
-              <ArrowRightIcon fill="#ffffff" width='34px' height='34px' />
+              <ArrowRightIcon fill="#ffffff" width="34px" height="34px" />
             </button>
           </div>
         </form>
 
         {/* Google OAuth */}
 
-        <Link to='/sign-in' className="registerLink">
+        <Link to="/sign-in" className="registerLink">
           Sign In Instead
         </Link>
       </div>
